@@ -1,0 +1,3 @@
+upstreams:
+  - name: devnet
+    url: "http://localhost:8545"
