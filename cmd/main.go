@@ -37,6 +37,9 @@ func Run() {
 	}
 
 	http.HandleFunc("/", handler())
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"status": "ok"}`))
+	})
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)
