@@ -15,11 +15,13 @@ import (
 
 type upstream struct {
 	Proxy *httputil.ReverseProxy
+	WsProxy *WebsocketProxy
 	RpcEndpoint rpcEndpoint
 }
 
 type upstreams struct {
 	Upstreams []upstream
+	WsUpstreams []*upstream
 	HealthyUpstreams []*upstream
 	HttpClient http.Client
 }
@@ -34,10 +36,21 @@ func (u *upstreams) init() {
 func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 	remote, err := url.Parse(rpc.Url)
 	if err != nil {
-		panic(err)
+		log.Println(rpc.Name, " RPC address is unparsable ",err)
+		return
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
-	up := upstream {Proxy: proxy, RpcEndpoint: rpc}
+	var wsProxy *WebsocketProxy
+	if rpc.WsUrl != "" {
+		remote, err = url.Parse(rpc.WsUrl)
+		if err != nil {
+			log.Println(rpc.Name, " WS RPC address is unparsable ",err)
+			wsProxy = nil
+		} else {
+			wsProxy = NewWsProxy(remote)
+		}
+	}
+	up := upstream {Proxy: proxy, WsProxy: wsProxy, RpcEndpoint: rpc}
 	u.Upstreams = append(u.Upstreams, up)
 }
 
@@ -68,12 +81,19 @@ func (u *upstreams) setHealthyUpstreams() {
 			if maxBlock - blocks[i] < blockHealthyDiff || maxTimestamp - timestamps[i] < timestampHealthyDiff {
 				if !slices.Contains(u.HealthyUpstreams,&u.Upstreams[i]) {
 					u.HealthyUpstreams = append(u.HealthyUpstreams,&u.Upstreams[i])
+					if u.Upstreams[i].WsProxy != nil {
+						u.WsUpstreams = append(u.WsUpstreams, &u.Upstreams[i])
+					}
 				}
 				log.Println(u.Upstreams[i].RpcEndpoint.Url, "is healthy")
 			} else {
 				index := slices.Index(u.HealthyUpstreams,&u.Upstreams[i])
 				if index != -1 {
 					u.HealthyUpstreams = slices.Delete(u.HealthyUpstreams, index, index+1)
+				}
+        index = slices.Index(u.WsUpstreams,&u.Upstreams[i])
+				if index != -1 {
+					u.WsUpstreams = slices.Delete(u.WsUpstreams, index, index+1)
 				}
 				log.Println(u.Upstreams[i].RpcEndpoint.Url, "is not healthy")
 			}
@@ -86,4 +106,10 @@ func (u *upstreams) getNextUpstream() *upstream {
 	rand.Seed(time.Now().Unix())
 	n := rand.Int() % len(u.HealthyUpstreams)
 	return u.HealthyUpstreams[n]
+}
+
+func (u *upstreams) getNextWsUpstream() *upstream {
+	rand.Seed(time.Now().Unix())
+	n := rand.Int() % len(u.WsUpstreams)
+	return u.WsUpstreams[n]
 }

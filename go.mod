@@ -4,7 +4,10 @@ go 1.23.3
 
 replace github.com/ai-ia-org/rpc-balancer/internal => ./internal
 
-require gopkg.in/yaml.v3 v3.0.1
+require (
+	github.com/gorilla/websocket v1.5.3
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/kr/pretty v0.3.1 // indirect

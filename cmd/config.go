@@ -10,6 +10,7 @@ type Configuration struct {
 	Upstreams []struct {
 		Name string `yaml:"name"`
   	Url string `yaml:"url"`
+		WsUrl string `yaml:"wsUrl"`
 	} `yaml:"upstreams"`
 }
 

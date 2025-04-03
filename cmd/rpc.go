@@ -15,14 +15,23 @@ type rpcEndpoint struct {
 	Name string
   Url string
 	Host string
+	WsUrl string
+	WsHost string
 }
 
 func (r *rpcEndpoint) init() {
 	remote, err := url.Parse(r.Url)
 	if err != nil {
-		panic(err)
+		log.Println(r.Name, " RPC address is unparsable ",err)
+		return
 	}
 	r.Host = remote.Host
+	remote, err = url.Parse(r.WsUrl)
+	if err != nil {
+		log.Println(r.Name, " WS RPC address is unparsable ",err)
+		return
+	}
+	r.WsHost = remote.Host
 }
 
 func rpcRequestBody(rpc rpcEndpoint, body io.Reader, httpClient http.Client) []byte {

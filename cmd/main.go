@@ -3,7 +3,6 @@ package cmd
 import (
 	"net/http"
 	"net/url"
-	"log"
 	"flag"
 )
 
@@ -16,26 +15,41 @@ var config Configuration
 func Run() {
 	configFilename := flag.String("config", "config.yaml", "Configuration file location")
 	config = getConfig(configFilename)
-	var ethMainnetUpstreams upstreams
+	var ethUpstreams upstreams
 	for _, upstream := range config.Upstreams {
-		upstreamRpc := rpcEndpoint {Name: upstream.Name, Url: upstream.Url}
+		upstreamRpc := rpcEndpoint {Name: upstream.Name, Url: upstream.Url, WsUrl: upstream.WsUrl}
 		upstreamRpc.init()
-		ethMainnetUpstreams.addUpstream(upstreamRpc)
+		ethUpstreams.addUpstream(upstreamRpc)
 	}
-	ethMainnetUpstreams.init()
+	ethUpstreams.init()
 	handler := func() func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
-			u := ethMainnetUpstreams.getNextUpstream()
-			log.Println(r.URL, u.RpcEndpoint.Url)
-			remote, err := url.Parse(u.RpcEndpoint.Url)
-			if err != nil {
-				panic(err)
+			upgrade := false
+			for _, header := range r.Header["Upgrade"] {
+				if header == "websocket" {
+					upgrade = true
+					break
+				}
 			}
-			r.Host = remote.Host
-			u.Proxy.ServeHTTP(w, r)
+			if upgrade == false {
+				u := ethUpstreams.getNextUpstream()
+				remote, err := url.Parse(u.RpcEndpoint.Url)
+				if err != nil {
+					panic(err)
+				}
+				r.Host = remote.Host
+				u.Proxy.ServeHTTP(w, r)
+			}	else {
+				u := ethUpstreams.getNextWsUpstream()
+				remote, err := url.Parse(u.RpcEndpoint.WsUrl)
+				if err != nil {
+					panic(err)
+				}
+				r.Host = remote.Host
+				u.WsProxy.ServeHTTP(w, r)
+			}
 		}
 	}
-
 	http.HandleFunc("/", handler())
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status": "ok"}`))
