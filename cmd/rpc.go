@@ -14,9 +14,9 @@ import (
 type rpcEndpoint struct {
 	Name string
   Url string
-	Host string
+	Remote url.URL
 	WsUrl string
-	WsHost string
+	WsRemote url.URL
 }
 
 func (r *rpcEndpoint) init() {
@@ -25,13 +25,13 @@ func (r *rpcEndpoint) init() {
 		log.Println(r.Name, " RPC address is unparsable ",err)
 		return
 	}
-	r.Host = remote.Host
-	remote, err = url.Parse(r.WsUrl)
-	if err != nil {
-		log.Println(r.Name, " WS RPC address is unparsable ",err)
+	r.Remote = *remote
+	wsRemote, wserr := url.Parse(r.WsUrl)
+	if wserr != nil {
+		log.Println(r.Name, " WS RPC address is unparsable ",wserr)
 		return
 	}
-	r.WsHost = remote.Host
+	r.WsRemote = *wsRemote
 }
 
 func rpcRequestBody(rpc rpcEndpoint, body io.Reader, httpClient http.Client) []byte {

@@ -1,4 +1,15 @@
-upstreams:
-  - name: devnet
-    url: "http://localhost:8545"
-    wsUrl: "ws://localhost:8546"
+networks:
+  - chainId: 100500
+    name: Devnet1
+    path: /devnet-1
+    upstreams:
+    - name: devnet-1
+      url: "http:/localhost:8545"
+      wsUrl: "ws://localhost:8546"
+  - chainId: 100501
+    name: Devnet2
+    path: /devnet-2
+    upstreams:
+    - name: devnet-2
+      url: "http://localhost:18545"
+      wsUrl: "ws://localhost:18546"

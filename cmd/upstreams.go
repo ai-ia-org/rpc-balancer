@@ -78,7 +78,7 @@ func (u *upstreams) setHealthyUpstreams() {
 			}
 		}
 		for i := 0; i < upstreamNum; i++ {
-			if maxBlock - blocks[i] < blockHealthyDiff || maxTimestamp - timestamps[i] < timestampHealthyDiff {
+			if (maxBlock - blocks[i] < blockHealthyDiff || maxTimestamp - timestamps[i] < timestampHealthyDiff) && maxBlock > 0 {
 				if !slices.Contains(u.HealthyUpstreams,&u.Upstreams[i]) {
 					u.HealthyUpstreams = append(u.HealthyUpstreams,&u.Upstreams[i])
 					if u.Upstreams[i].WsProxy != nil {
@@ -103,13 +103,21 @@ func (u *upstreams) setHealthyUpstreams() {
 }
 
 func (u *upstreams) getNextUpstream() *upstream {
-	rand.Seed(time.Now().Unix())
-	n := rand.Int() % len(u.HealthyUpstreams)
-	return u.HealthyUpstreams[n]
+	if len(u.HealthyUpstreams) > 0 {
+		rand.Seed(time.Now().Unix())
+		n := rand.Int() % len(u.HealthyUpstreams)
+		return u.HealthyUpstreams[n]
+	} else {
+		return nil
+	}
 }
 
 func (u *upstreams) getNextWsUpstream() *upstream {
-	rand.Seed(time.Now().Unix())
-	n := rand.Int() % len(u.WsUpstreams)
-	return u.WsUpstreams[n]
+	if len(u.WsUpstreams) > 0 {
+		rand.Seed(time.Now().Unix())
+		n := rand.Int() % len(u.WsUpstreams)
+		return u.WsUpstreams[n]
+	} else {
+		return nil
+	}
 }

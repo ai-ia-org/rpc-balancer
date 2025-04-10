@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"net/http"
-	"net/url"
+	"log"
 	"flag"
 )
 
@@ -15,15 +15,10 @@ var config Configuration
 func Run() {
 	configFilename := flag.String("config", "config.yaml", "Configuration file location")
 	config = getConfig(configFilename)
-	var ethUpstreams upstreams
-	for _, upstream := range config.Upstreams {
-		upstreamRpc := rpcEndpoint {Name: upstream.Name, Url: upstream.Url, WsUrl: upstream.WsUrl}
-		upstreamRpc.init()
-		ethUpstreams.addUpstream(upstreamRpc)
-	}
-	ethUpstreams.init()
+	nets :=  make(map[string]network)
 	handler := func() func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
+			net := nets[r.URL.Path]
 			upgrade := false
 			for _, header := range r.Header["Upgrade"] {
 				if header == "websocket" {
@@ -32,25 +27,37 @@ func Run() {
 				}
 			}
 			if upgrade == false {
-				u := ethUpstreams.getNextUpstream()
-				remote, err := url.Parse(u.RpcEndpoint.Url)
-				if err != nil {
-					panic(err)
+				u := net.Proxies.getNextUpstream()
+				if u == nil {
+					log.Println(r.URL.Path, "doesn't have active upstreams")
+					return
 				}
-				r.Host = remote.Host
+				r.Host = u.RpcEndpoint.Remote.Host
+				r.URL.Path = u.RpcEndpoint.Remote.Path
 				u.Proxy.ServeHTTP(w, r)
 			}	else {
-				u := ethUpstreams.getNextWsUpstream()
-				remote, err := url.Parse(u.RpcEndpoint.WsUrl)
-				if err != nil {
-					panic(err)
+				u := net.Proxies.getNextWsUpstream()
+				if u == nil {
+					log.Println(r.URL.Path, " doesn't have active upstreams")
+					return
 				}
-				r.Host = remote.Host
+				r.Host = u.RpcEndpoint.WsRemote.Host
+				r.URL.Path = u.RpcEndpoint.WsRemote.Path
 				u.WsProxy.ServeHTTP(w, r)
 			}
 		}
 	}
-	http.HandleFunc("/", handler())
+	for _, net := range config.Networks {
+		up := &upstreams{}
+		nets[net.Path] = network {ChainId: net.ChainId, Name: net.Name, Proxies: up}
+		for _, upstream := range net.Upstreams {
+			upstreamRpc := rpcEndpoint {Name: upstream.Name, Url: upstream.Url, WsUrl: upstream.WsUrl}
+			upstreamRpc.init()
+			up.addUpstream(upstreamRpc)
+		}
+		up.init()
+		http.HandleFunc(net.Path, handler())
+	}
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status": "ok"}`))
 	})

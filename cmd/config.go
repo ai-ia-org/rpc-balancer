@@ -7,11 +7,16 @@ import (
 )
 
 type Configuration struct {
-	Upstreams []struct {
+	Networks []struct {
+		ChainId string `yaml:"chainId"`
 		Name string `yaml:"name"`
-  	Url string `yaml:"url"`
-		WsUrl string `yaml:"wsUrl"`
-	} `yaml:"upstreams"`
+		Path string `yaml:"path"`
+		Upstreams []struct {
+			Name string `yaml:"name"`
+			Url string `yaml:"url"`
+			WsUrl string `yaml:"wsUrl"`
+		} `yaml:"upstreams"`
+	} `yanl:"networks"`
 }
 
 func getConfig(configfile *string) Configuration {
