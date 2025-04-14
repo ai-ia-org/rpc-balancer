@@ -141,8 +141,12 @@ func (w *WebsocketProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
-	defer connBackend.Close()
-
+	defer func() {
+		err = connBackend.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	upgrader := w.Upgrader
 	if w.Upgrader == nil {
 		upgrader = DefaultUpgrader
@@ -164,8 +168,12 @@ func (w *WebsocketProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("websocketproxy: couldn't upgrade %s", err)
 		return
 	}
-	defer connPub.Close()
-
+	defer func() {
+		err = connPub.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	errClient := make(chan error, 1)
 	errBackend := make(chan error, 1)
 	replicateWebsocketConn := func(dst, src *websocket.Conn, errc chan error) {
@@ -179,7 +187,10 @@ func (w *WebsocketProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					}
 				}
 				errc <- err
-				dst.WriteMessage(websocket.CloseMessage, m)
+				err = dst.WriteMessage(websocket.CloseMessage, m)
+				if err != nil {
+					errc <- err
+				}
 				break
 			}
 			err = dst.WriteMessage(msgType, msg)
@@ -217,8 +228,12 @@ func copyHeader(dst, src http.Header) {
 func copyResponse(rw http.ResponseWriter, resp *http.Response) error {
 	copyHeader(rw.Header(), resp.Header)
 	rw.WriteHeader(resp.StatusCode)
-	defer resp.Body.Close()
-
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	_, err := io.Copy(rw, resp.Body)
 	return err
 }

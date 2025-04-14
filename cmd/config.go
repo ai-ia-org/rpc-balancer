@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"os"
 	"log"
 	"gopkg.in/yaml.v3"
 )
@@ -21,7 +21,7 @@ type Configuration struct {
 
 func getConfig(configfile *string) Configuration {
 	config := Configuration{}
-	yamlFile, err := ioutil.ReadFile(*configfile)
+	yamlFile, err := os.ReadFile(*configfile)
 	if err != nil {
 			log.Printf("yamlFile.Get err   #%v ", err)
 	}

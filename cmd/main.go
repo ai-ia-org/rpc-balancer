@@ -12,6 +12,16 @@ var blockHealthyDiff int64 = 5
 var timestampHealthyDiff int64 = 3
 var config Configuration
 
+func ReverseProxyErrHandle(res http.ResponseWriter, req *http.Request, err error) {
+	log.Println(res.Header())
+	log.Println(err)
+}
+
+func ReverseProxyModifyResponse(res *http.Response) error {
+	log.Println(res.StatusCode)
+	return nil
+}
+
 func Run() {
 	configFilename := flag.String("config", "config.yaml", "Configuration file location")
 	config = getConfig(configFilename)
@@ -26,7 +36,7 @@ func Run() {
 					break
 				}
 			}
-			if upgrade == false {
+			if !upgrade {
 				u := net.Proxies.getNextUpstream()
 				if u == nil {
 					log.Println(r.URL.Path, "doesn't have active upstreams")
@@ -34,6 +44,8 @@ func Run() {
 				}
 				r.Host = u.RpcEndpoint.Remote.Host
 				r.URL.Path = u.RpcEndpoint.Remote.Path
+				u.Proxy.ModifyResponse = ReverseProxyModifyResponse
+				u.Proxy.ErrorHandler = ReverseProxyErrHandle
 				u.Proxy.ServeHTTP(w, r)
 			}	else {
 				u := net.Proxies.getNextWsUpstream()
@@ -59,7 +71,10 @@ func Run() {
 		http.HandleFunc(net.Path, handler())
 	}
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status": "ok"}`))
+		_, err := w.Write([]byte(`{"status": "ok"}`))
+		if err != nil {
+			panic(err)
+		}
 	})
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

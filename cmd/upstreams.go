@@ -26,11 +26,14 @@ type upstreams struct {
 	HttpClient http.Client
 }
 
+var randomSource *rand.Rand
+
 func (u *upstreams) init() {
 	u.HttpClient = http.Client{
 		Timeout: time.Duration(connectTimeout) * time.Second,
 	}
 	go u.setHealthyUpstreams()
+	randomSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 func (u *upstreams) addUpstream(rpc rpcEndpoint) {
@@ -64,7 +67,7 @@ func (u *upstreams) setHealthyUpstreams() {
 		for i := 0; i < upstreamNum; i++ {
 			go func(i int) {
 				blockString := getLatestBlock(u.Upstreams[i].RpcEndpoint, u.HttpClient)
-				blocks[i], _ = strconv.ParseInt(strings.Replace(blockString, "0x", "", -1), 16, 64)
+				blocks[i], _ = strconv.ParseInt(strings.ReplaceAll(blockString, "0x", ""), 16, 64)
 				timestamps[i] = getLatestBlockTimestamp(u.Upstreams[i].RpcEndpoint, blockString, u.HttpClient)
 				defer wg.Done()
 			}(i)
@@ -104,8 +107,7 @@ func (u *upstreams) setHealthyUpstreams() {
 
 func (u *upstreams) getNextUpstream() *upstream {
 	if len(u.HealthyUpstreams) > 0 {
-		rand.Seed(time.Now().Unix())
-		n := rand.Int() % len(u.HealthyUpstreams)
+		n := randomSource.Int() % len(u.HealthyUpstreams)
 		return u.HealthyUpstreams[n]
 	} else {
 		return nil
@@ -114,8 +116,7 @@ func (u *upstreams) getNextUpstream() *upstream {
 
 func (u *upstreams) getNextWsUpstream() *upstream {
 	if len(u.WsUpstreams) > 0 {
-		rand.Seed(time.Now().Unix())
-		n := rand.Int() % len(u.WsUpstreams)
+		n := randomSource.Int() % len(u.WsUpstreams)
 		return u.WsUpstreams[n]
 	} else {
 		return nil

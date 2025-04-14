@@ -42,8 +42,17 @@ func rpcRequestBody(rpc rpcEndpoint, body io.Reader, httpClient http.Client) []b
 		log.Println("Error connecting RPC node name " + rpc.Name + " with URL " + rpc.Url)
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			log.Println("Error closing connection to RPC node name " + rpc.Name + " with URL " + rpc.Url)
+		}
+	}()
 	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Error getting response from node " + rpc.Name)
+		return nil
+	}
 	return resp_body
 }
 
@@ -83,6 +92,6 @@ func getLatestBlockTimestamp(rpc rpcEndpoint, block string, httpClient http.Clie
 		return 0
 	}
 	result := res["result"].(map[string]interface{})
-	timestamp, _ := strconv.ParseInt(strings.Replace(result["timestamp"].(string), "0x", "", -1), 16, 64)
+	timestamp, _ := strconv.ParseInt(strings.ReplaceAll(result["timestamp"].(string), "0x", ""), 16, 64)
 	return timestamp
 }
