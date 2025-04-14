@@ -3,27 +3,27 @@ package cmd
 import (
 	"log"
 	"math/rand"
-	"time"
-	"sync"
-	"strconv"
-	"strings"
-	"slices"
-	"net/url"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
+	"slices"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 type upstream struct {
-	Proxy *httputil.ReverseProxy
-	WsProxy *WebsocketProxy
+	Proxy       *httputil.ReverseProxy
+	WsProxy     *WebsocketProxy
 	RpcEndpoint rpcEndpoint
 }
 
 type upstreams struct {
-	Upstreams []upstream
-	WsUpstreams []*upstream
+	Upstreams        []upstream
+	WsUpstreams      []*upstream
 	HealthyUpstreams []*upstream
-	HttpClient http.Client
+	HttpClient       http.Client
 }
 
 var randomSource *rand.Rand
@@ -39,7 +39,7 @@ func (u *upstreams) init() {
 func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 	remote, err := url.Parse(rpc.Url)
 	if err != nil {
-		log.Println(rpc.Name, " RPC address is unparsable ",err)
+		log.Println(rpc.Name, " RPC address is unparsable ", err)
 		return
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
@@ -47,13 +47,13 @@ func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 	if rpc.WsUrl != "" {
 		remote, err = url.Parse(rpc.WsUrl)
 		if err != nil {
-			log.Println(rpc.Name, " WS RPC address is unparsable ",err)
+			log.Println(rpc.Name, " WS RPC address is unparsable ", err)
 			wsProxy = nil
 		} else {
 			wsProxy = NewWsProxy(remote)
 		}
 	}
-	up := upstream {Proxy: proxy, WsProxy: wsProxy, RpcEndpoint: rpc}
+	up := upstream{Proxy: proxy, WsProxy: wsProxy, RpcEndpoint: rpc}
 	u.Upstreams = append(u.Upstreams, up)
 }
 
@@ -81,20 +81,20 @@ func (u *upstreams) setHealthyUpstreams() {
 			}
 		}
 		for i := 0; i < upstreamNum; i++ {
-			if (maxBlock - blocks[i] < blockHealthyDiff || maxTimestamp - timestamps[i] < timestampHealthyDiff) && maxBlock > 0 {
-				if !slices.Contains(u.HealthyUpstreams,&u.Upstreams[i]) {
-					u.HealthyUpstreams = append(u.HealthyUpstreams,&u.Upstreams[i])
+			if (maxBlock-blocks[i] < blockHealthyDiff || maxTimestamp-timestamps[i] < timestampHealthyDiff) && maxBlock > 0 {
+				if !slices.Contains(u.HealthyUpstreams, &u.Upstreams[i]) {
+					u.HealthyUpstreams = append(u.HealthyUpstreams, &u.Upstreams[i])
 					if u.Upstreams[i].WsProxy != nil {
 						u.WsUpstreams = append(u.WsUpstreams, &u.Upstreams[i])
 					}
 				}
 				log.Println(u.Upstreams[i].RpcEndpoint.Url, "is healthy")
 			} else {
-				index := slices.Index(u.HealthyUpstreams,&u.Upstreams[i])
+				index := slices.Index(u.HealthyUpstreams, &u.Upstreams[i])
 				if index != -1 {
 					u.HealthyUpstreams = slices.Delete(u.HealthyUpstreams, index, index+1)
 				}
-        index = slices.Index(u.WsUpstreams,&u.Upstreams[i])
+				index = slices.Index(u.WsUpstreams, &u.Upstreams[i])
 				if index != -1 {
 					u.WsUpstreams = slices.Delete(u.WsUpstreams, index, index+1)
 				}

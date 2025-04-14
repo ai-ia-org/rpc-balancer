@@ -1,34 +1,33 @@
 package cmd
 
 import (
+	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
-	"io"
-	"log"
 	"strings"
-	"encoding/json"
 )
 
-
 type rpcEndpoint struct {
-	Name string
-  Url string
-	Remote url.URL
-	WsUrl string
+	Name     string
+	Url      string
+	Remote   url.URL
+	WsUrl    string
 	WsRemote url.URL
 }
 
 func (r *rpcEndpoint) init() {
 	remote, err := url.Parse(r.Url)
 	if err != nil {
-		log.Println(r.Name, " RPC address is unparsable ",err)
+		log.Println(r.Name, " RPC address is unparsable ", err)
 		return
 	}
 	r.Remote = *remote
 	wsRemote, wserr := url.Parse(r.WsUrl)
 	if wserr != nil {
-		log.Println(r.Name, " WS RPC address is unparsable ",wserr)
+		log.Println(r.Name, " WS RPC address is unparsable ", wserr)
 		return
 	}
 	r.WsRemote = *wsRemote
@@ -76,7 +75,7 @@ func getLatestBlock(rpc rpcEndpoint, httpClient http.Client) string {
 	return result["result"].(string)
 }
 func getLatestBlockTimestamp(rpc rpcEndpoint, block string, httpClient http.Client) int64 {
-	req_body := strings.NewReader(`{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["`+block+`", true],"id":1}`)
+	req_body := strings.NewReader(`{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["` + block + `", true],"id":1}`)
 	resp_body := rpcRequestBody(rpc, req_body, httpClient)
 	if resp_body == nil {
 		return 0
