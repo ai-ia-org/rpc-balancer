@@ -85,7 +85,7 @@ docker run -d \
 Usage: rpc-balancer [options]
 
 Options:
-  -c, --config string      Path to config file (default "config.yml")
+  -c string      Path to config file (default "config.yml")
 ```
 
 ## Health Checks

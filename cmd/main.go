@@ -13,7 +13,8 @@ var timestampHealthyDiff int64 = 3
 var config Configuration
 
 func Run() {
-	configFilename := flag.String("config", "config.yaml", "Configuration file location")
+	configFilename := flag.String("c", "config.yaml", "Configuration file location")
+	flag.Parse()
 	config = getConfig(configFilename)
 	nets := make(map[string]network)
 	handler := func() func(http.ResponseWriter, *http.Request) {
