@@ -1,0 +1,6 @@
+site_name: Ethereum VM RPC balancer
+repo_url: https://github.com/ai-ia-org/rpc-balancer
+theme: readthedocs
+
+nav:
+  - Quickstart: 'index.md'
