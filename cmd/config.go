@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"flag"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -16,10 +17,23 @@ type Configuration struct {
 			Url   string `yaml:"url"`
 			WsUrl string `yaml:"wsUrl"`
 		} `yaml:"upstreams"`
-	} `yanl:"networks"`
+	} `yaml:"networks"`
 }
 
-func getConfig(configfile *string) Configuration {
+var connectTimeout = 5
+var upstreamCheckInterval = 15
+var blockHealthyDiff int64 = 5
+var timestampHealthyDiff int64 = 3
+var metricsPort *int
+var port *int
+var config Configuration
+
+func getConfig() Configuration {
+	configfile := flag.String("config", "config.yaml", "Configuration file location")
+	port = flag.Int("port", 8080, "Application port")
+	metricsPort = flag.Int("metrics-port", 6060, "Prometheus metrics port")
+
+	flag.Parse()
 	config := Configuration{}
 	yamlFile, err := os.ReadFile(*configfile)
 	if err != nil {

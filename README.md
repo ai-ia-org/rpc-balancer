@@ -62,7 +62,7 @@ EOF
 2. Run the balancer:
 
 ```bash
-./rpc-balancer --config config.yml
+./rpc-balancer
 ```
 
 ### Using Docker
@@ -79,9 +79,33 @@ docker run -d \
   ghcr.io/ai-ia-org/rpc-balancer:latest
 ```
 
+## Command Line Options
+
+```
+Usage: rpc-balancer [options]
+
+Options:
+  --config string      Path to config file (default "config.yml")
+  --port int           Server port (default 8080)
+  --metrics-port int   Metrics port (default 6060)
+```
+
 ## Health Checks
 
 RPC Balancer performs regular health checks on backend services. If a backend fails its health check, it is temporarily removed from the load balancing pool until it becomes healthy again.
+
+## Monitoring
+
+### Prometheus Metrics
+
+RPC Balancer exposes the following Prometheus metrics on the metrics port:
+
+- `rpc_balancer_upstream_latest_block` - Latest block available on upstream
+- `rpc_balancer_upstream_latest_block_timestamp` - Timestamp of latest block available on upstream
+- `rpc_balancer_upstream_up` - Upstream health status (1 = up, 0 = down)
+- `rpc_balancer_chain_latest_block` - Latest block available for whole chain (max block from all upstreams)
+- `rpc_balancer_chain_latest_block_timestamp` - Timestamp of latest block available for whole chain
+- `rpc_balancer_chain_healthy_upstream_num` - Number of healhy upstreams for chain
 
 ## Contributing
 
@@ -99,4 +123,4 @@ This project is licensed under the GPL-3.0 License - see the LICENSE file for de
 
 ## Acknowledgments
 
-Thanks to all contributors who have helped with the development of RPC Balancer
+- Thanks to all contributors who have helped with the development of RPC Balancer

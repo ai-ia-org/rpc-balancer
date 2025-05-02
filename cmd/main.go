@@ -1,21 +1,14 @@
 package cmd
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var connectTimeout = 5
-var upstreamCheckInterval = 30
-var blockHealthyDiff int64 = 5
-var timestampHealthyDiff int64 = 3
-var config Configuration
-
 func Run() {
-	configFilename := flag.String("c", "config.yaml", "Configuration file location")
-	flag.Parse()
-	config = getConfig(configFilename)
+	config = getConfig()
 	nets := make(map[string]network)
 	handler := func() func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +49,7 @@ func Run() {
 			upstreamRpc.init()
 			up.addUpstream(upstreamRpc)
 		}
-		up.init()
+		up.init(net.ChainId, net.Name)
 		http.HandleFunc(net.Path, handler())
 	}
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +58,19 @@ func Run() {
 			panic(err)
 		}
 	})
-	err := http.ListenAndServe(":8080", nil)
+	go func() {
+		metricsServer := &http.Server{
+			Addr:    fmt.Sprintf(":%d",*metricsPort),
+			Handler: promhttp.Handler(),
+		}
+		log.Println("Starting Prometheus metrics server on", *metricsPort, "port")
+		if err := metricsServer.ListenAndServe(); err != nil {
+			log.Fatalf("Failed to start metrics server: %v", err)
+		}
+	}()
+	appPortStr := fmt.Sprintf(":%d",*port)
+	log.Println("Starting application server on", *port, "port")
+	err := http.ListenAndServe(appPortStr, nil)
 	if err != nil {
 		panic(err)
 	}

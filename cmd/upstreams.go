@@ -28,11 +28,11 @@ type upstreams struct {
 
 var randomSource *rand.Rand
 
-func (u *upstreams) init() {
+func (u *upstreams) init(chainId string, chainName string) {
 	u.HttpClient = http.Client{
 		Timeout: time.Duration(connectTimeout) * time.Second,
 	}
-	go u.setHealthyUpstreams()
+	go u.setHealthyUpstreams(chainId, chainName)
 	randomSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
@@ -57,7 +57,7 @@ func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 	u.Upstreams = append(u.Upstreams, up)
 }
 
-func (u *upstreams) setHealthyUpstreams() {
+func (u *upstreams) setHealthyUpstreams(chainId string, chainName string) {
 	for {
 		upstreamNum := len(u.Upstreams)
 		var wg sync.WaitGroup
@@ -69,6 +69,8 @@ func (u *upstreams) setHealthyUpstreams() {
 				blockString := getLatestBlock(u.Upstreams[i].RpcEndpoint, u.HttpClient)
 				blocks[i], _ = strconv.ParseInt(strings.ReplaceAll(blockString, "0x", ""), 16, 64)
 				timestamps[i] = getLatestBlockTimestamp(u.Upstreams[i].RpcEndpoint, blockString, u.HttpClient)
+				rpcBalancerUpstreamLatestBlock.WithLabelValues(chainId, chainName, u.Upstreams[i].RpcEndpoint.Name, u.Upstreams[i].RpcEndpoint.Url).Set(float64(blocks[i]))
+				rpcBalancerUpstreamLatestBlockTimestamp.WithLabelValues(chainId, chainName, u.Upstreams[i].RpcEndpoint.Name, u.Upstreams[i].RpcEndpoint.Url).Set(float64(timestamps[i]))
 				defer wg.Done()
 			}(i)
 		}
@@ -80,6 +82,8 @@ func (u *upstreams) setHealthyUpstreams() {
 				maxTimestamp = timestamps[i]
 			}
 		}
+		rpcBalancerChainLatestBlock.WithLabelValues(chainId, chainName).Set(float64(maxBlock))
+		rpcBalancerChainLatestBlockTimestamp.WithLabelValues(chainId, chainName).Set(float64(maxTimestamp))
 		for i := 0; i < upstreamNum; i++ {
 			if (maxBlock-blocks[i] < blockHealthyDiff || maxTimestamp-timestamps[i] < timestampHealthyDiff) && maxBlock > 0 {
 				if !slices.Contains(u.HealthyUpstreams, &u.Upstreams[i]) {
@@ -88,6 +92,7 @@ func (u *upstreams) setHealthyUpstreams() {
 						u.WsUpstreams = append(u.WsUpstreams, &u.Upstreams[i])
 					}
 				}
+				rpcBalancerUpstreamUp.WithLabelValues(chainId, chainName, u.Upstreams[i].RpcEndpoint.Name, u.Upstreams[i].RpcEndpoint.Url).Set(1)
 				log.Println(u.Upstreams[i].RpcEndpoint.Url, "is healthy")
 			} else {
 				index := slices.Index(u.HealthyUpstreams, &u.Upstreams[i])
@@ -98,9 +103,11 @@ func (u *upstreams) setHealthyUpstreams() {
 				if index != -1 {
 					u.WsUpstreams = slices.Delete(u.WsUpstreams, index, index+1)
 				}
+				rpcBalancerUpstreamUp.WithLabelValues(chainId, chainName, u.Upstreams[i].RpcEndpoint.Name, u.Upstreams[i].RpcEndpoint.Url).Set(0)
 				log.Println(u.Upstreams[i].RpcEndpoint.Url, "is not healthy")
 			}
 		}
+		rpcBalancerChainHealthyUpstreamNum.WithLabelValues(chainId, chainName).Set(float64(len(u.HealthyUpstreams)))
 		time.Sleep(time.Duration(upstreamCheckInterval) * time.Second)
 	}
 }
