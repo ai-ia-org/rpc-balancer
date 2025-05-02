@@ -85,8 +85,23 @@ docker run -d \
 Usage: rpc-balancer [options]
 
 Options:
-  -c string      Path to config file (default "config.yml")
+  --config string      Path to config file (default "config.yml")
+  --port int           Server port (default 8080)
+  --metrics-port int   Metrics port (default 6060)
 ```
+
+## Monitoring
+
+### Prometheus Metrics
+
+RPC Balancer exposes the following Prometheus metrics on the metrics port:
+
+- `rpc_balancer_upstream_latest_block` - Latest block available on upstream
+- `rpc_balancer_upstream_latest_block_timestamp` - Timestamp of latest block available on upstream
+- `rpc_balancer_upstream_up` - Upstream health status (1 = up, 0 = down)
+- `rpc_balancer_chain_latest_block` - Latest block available for whole chain (max block from all upstreams)
+- `rpc_balancer_chain_latest_block_timestamp` - Timestamp of latest block available for whole chain
+- `rpc_balancer_chain_healthy_upstream_num` - Number of healhy upstreams for chain
 
 ## Health Checks
 
