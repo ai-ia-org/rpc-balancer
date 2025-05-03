@@ -106,6 +106,8 @@ RPC Balancer exposes the following Prometheus metrics on the metrics port:
 - `rpc_balancer_chain_latest_block` - Latest block available for whole chain (max block from all upstreams)
 - `rpc_balancer_chain_latest_block_timestamp` - Timestamp of latest block available for whole chain
 - `rpc_balancer_chain_healthy_upstream_num` - Number of healhy upstreams for chain
+- `rpc_balancer_upstream_http_requests_total` - Total number of HTTP requests sent to upstream
+- `rpc_balancer_upstream_http_requests` - Number of HTTP requests sent to upstream by status
 
 ## Contributing
 

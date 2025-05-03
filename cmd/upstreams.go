@@ -43,6 +43,8 @@ func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 		return
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.ModifyResponse = httpModifyResponse
+	proxy.ErrorHandler = httpErrorHandler
 	var wsProxy *WebsocketProxy
 	if rpc.WsUrl != "" {
 		remote, err = url.Parse(rpc.WsUrl)

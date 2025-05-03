@@ -29,6 +29,7 @@ func Run() {
 				r.Host = u.RpcEndpoint.Remote.Host
 				r.URL.Path = u.RpcEndpoint.Remote.Path
 				u.Proxy.ServeHTTP(w, r)
+				rpcBalancerUpstreamHttpRequestTotal.WithLabelValues(net.ChainId, net.Name, u.RpcEndpoint.Name, u.RpcEndpoint.Url).Inc()
 			} else {
 				u := net.Proxies.getNextWsUpstream()
 				if u == nil {
@@ -38,6 +39,7 @@ func Run() {
 				r.Host = u.RpcEndpoint.WsRemote.Host
 				r.URL.Path = u.RpcEndpoint.WsRemote.Path
 				u.WsProxy.ServeHTTP(w, r)
+				rpcBalancerUpstreamWsRequestTotal.WithLabelValues(net.ChainId, net.Name, u.RpcEndpoint.Name, u.RpcEndpoint.Url).Inc()
 			}
 		}
 	}
