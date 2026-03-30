@@ -87,7 +87,7 @@ func (u *upstreams) setHealthyUpstreams(chainId string, chainName string) {
 		}
 		if u.Fallback != nil {
 			fallbackBlockString := getLatestBlock(u.Fallback.RpcEndpoint, u.HttpClient)
-			fallbackBвlock, _ := strconv.ParseInt(strings.ReplaceAll(fallbackBlockString, "0x", ""), 16, 64)
+			fallbackBlock, _ := strconv.ParseInt(strings.ReplaceAll(fallbackBlockString, "0x", ""), 16, 64)
 			fallbackTimestamp := getLatestBlockTimestamp(u.Fallback.RpcEndpoint, fallbackBlockString, u.HttpClient)
 			if fallbackBlock > maxBlock {
 				maxBlock = fallbackBlock
