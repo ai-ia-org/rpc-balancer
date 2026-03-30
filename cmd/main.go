@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -23,8 +25,13 @@ func Run() {
 			if !upgrade {
 				u := net.Proxies.getNextUpstream()
 				if u == nil {
-					log.Println(r.URL.Path, "doesn't have active upstreams")
-					return
+					if net.Fallback == nil {
+						log.Println(r.URL.Path, "doesn't have active upstreams and no fallback configured")
+						http.Error(w, "no upstreams available", http.StatusServiceUnavailable)
+						return
+					}
+					log.Println(r.URL.Path, "no healthy upstreams, using fallback")
+					u = net.Fallback
 				}
 				r.Host = u.RpcEndpoint.Remote.Host
 				r.URL.Path = u.RpcEndpoint.Remote.Path
@@ -45,7 +52,22 @@ func Run() {
 	}
 	for _, net := range config.Networks {
 		up := &upstreams{}
-		nets[net.Path] = network{ChainId: net.ChainId, Name: net.Name, Proxies: up}
+		var fallback *upstream
+		if net.Fallback != "" {
+			remote, err := url.Parse(net.Fallback)
+			if err != nil {
+				log.Println("fallback URL is unparsable for", net.Name, ":", err)
+			} else {
+				proxy := httputil.NewSingleHostReverseProxy(remote)
+				proxy.ModifyResponse = httpModifyResponse
+				proxy.ErrorHandler = httpErrorHandler
+				ep := rpcEndpoint{Name: "fallback", Url: net.Fallback}
+				ep.init()
+				fallback = &upstream{Proxy: proxy, RpcEndpoint: ep}
+			}
+		}
+		up.Fallback = fallback
+		nets[net.Path] = network{ChainId: net.ChainId, Name: net.Name, Proxies: up, Fallback: fallback}
 		for _, upstream := range net.Upstreams {
 			upstreamRpc := rpcEndpoint{Name: upstream.Name, Url: upstream.Url, WsUrl: upstream.WsUrl}
 			upstreamRpc.init()

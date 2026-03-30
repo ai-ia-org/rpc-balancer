@@ -24,6 +24,7 @@ type upstreams struct {
 	WsUpstreams      []*upstream
 	HealthyUpstreams []*upstream
 	HttpClient       http.Client
+	Fallback         *upstream
 }
 
 var randomSource *rand.Rand
@@ -82,6 +83,15 @@ func (u *upstreams) setHealthyUpstreams(chainId string, chainName string) {
 			if blocks[i] > maxBlock {
 				maxBlock = blocks[i]
 				maxTimestamp = timestamps[i]
+			}
+		}
+		if u.Fallback != nil {
+			fallbackBlockString := getLatestBlock(u.Fallback.RpcEndpoint, u.HttpClient)
+			fallbackBвlock, _ := strconv.ParseInt(strings.ReplaceAll(fallbackBlockString, "0x", ""), 16, 64)
+			fallbackTimestamp := getLatestBlockTimestamp(u.Fallback.RpcEndpoint, fallbackBlockString, u.HttpClient)
+			if fallbackBlock > maxBlock {
+				maxBlock = fallbackBlock
+				maxTimestamp = fallbackTimestamp
 			}
 		}
 		rpcBalancerChainLatestBlock.WithLabelValues(chainId, chainName).Set(float64(maxBlock))

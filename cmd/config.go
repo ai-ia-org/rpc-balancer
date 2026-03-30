@@ -12,6 +12,7 @@ type Configuration struct {
 		ChainId   string `yaml:"chainId"`
 		Name      string `yaml:"name"`
 		Path      string `yaml:"path"`
+		Fallback  string `yaml:"fallback"`
 		Upstreams []struct {
 			Name  string `yaml:"name"`
 			Url   string `yaml:"url"`

@@ -2,9 +2,10 @@ networks:
   - chainId: 100500
     name: Devnet1
     path: /devnet-1
+    fallback: http://localhost:28545
     upstreams:
     - name: devnet-1
-      url: "http:/localhost:8545"
+      url: "http://localhost:8545"
       wsUrl: "ws://localhost:8546"
   - chainId: 100501
     name: Devnet2
