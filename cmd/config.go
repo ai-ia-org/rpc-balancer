@@ -7,12 +7,19 @@ import (
 	"os"
 )
 
+type RateLimitConfig struct {
+	RequestsPerSecond float64 `yaml:"requestsPerSecond"`
+	Burst             int     `yaml:"burst"`
+}
+
 type Configuration struct {
-	Networks []struct {
-		ChainId   string `yaml:"chainId"`
-		Name      string `yaml:"name"`
-		Path      string `yaml:"path"`
-		Fallback  string `yaml:"fallback"`
+	RateLimit *RateLimitConfig `yaml:"rateLimit"`
+	Networks  []struct {
+		ChainId   string           `yaml:"chainId"`
+		Name      string           `yaml:"name"`
+		Path      string           `yaml:"path"`
+		Fallback  string           `yaml:"fallback"`
+		RateLimit *RateLimitConfig `yaml:"rateLimit"`
 		Upstreams []struct {
 			Name  string `yaml:"name"`
 			Url   string `yaml:"url"`

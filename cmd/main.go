@@ -15,6 +15,14 @@ func Run() {
 	handler := func() func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			net := nets[r.URL.Path]
+			if net.RateLimiter != nil {
+				ip := clientIP(r)
+				if !net.RateLimiter.allow(ip) {
+					rpcBalancerRateLimitedRequestsTotal.WithLabelValues(net.ChainId, net.Name).Inc()
+					http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+					return
+				}
+			}
 			upgrade := false
 			for _, header := range r.Header["Upgrade"] {
 				if header == "websocket" {
@@ -52,6 +60,12 @@ func Run() {
 	}
 	for _, net := range config.Networks {
 		up := &upstreams{}
+		var rl *ipRateLimiter
+		if net.RateLimit != nil {
+			rl = newIPRateLimiter(net.RateLimit.RequestsPerSecond, net.RateLimit.Burst)
+		} else if config.RateLimit != nil {
+			rl = newIPRateLimiter(config.RateLimit.RequestsPerSecond, config.RateLimit.Burst)
+		}
 		var fallback *upstream
 		if net.Fallback != "" {
 			remote, err := url.Parse(net.Fallback)
@@ -67,7 +81,7 @@ func Run() {
 			}
 		}
 		up.Fallback = fallback
-		nets[net.Path] = network{ChainId: net.ChainId, Name: net.Name, Proxies: up, Fallback: fallback}
+		nets[net.Path] = network{ChainId: net.ChainId, Name: net.Name, Proxies: up, Fallback: fallback, RateLimiter: rl}
 		for _, upstream := range net.Upstreams {
 			upstreamRpc := rpcEndpoint{Name: upstream.Name, Url: upstream.Url, WsUrl: upstream.WsUrl}
 			upstreamRpc.init()

@@ -77,3 +77,11 @@ var (
 	[]string{"chainid","chainname","name","url"},
 	)
 )
+var (
+	rpcBalancerRateLimitedRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "rpc_balancer_rate_limited_requests_total",
+		Help: "Total requests rejected by the per-IP rate limiter",
+	},
+	[]string{"chainid","chainname"},
+	)
+)
