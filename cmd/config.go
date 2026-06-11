@@ -13,8 +13,9 @@ type RateLimitConfig struct {
 }
 
 type Configuration struct {
-	RateLimit *RateLimitConfig `yaml:"rateLimit"`
-	Networks  []struct {
+	RateLimit            *RateLimitConfig `yaml:"rateLimit"`
+	DisableForwardClientIP bool           `yaml:"disableForwardClientIP"`
+	Networks             []struct {
 		ChainId   string           `yaml:"chainId"`
 		Name      string           `yaml:"name"`
 		Path      string           `yaml:"path"`

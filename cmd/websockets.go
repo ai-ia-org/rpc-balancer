@@ -44,6 +44,9 @@ type WebsocketProxy struct {
 	//  Dialer contains options for connecting to the backend WebSocket server.
 	//  If nil, DefaultDialer is used.
 	Dialer *websocket.Dialer
+
+	// DisableForwardClientIP suppresses the X-Forwarded-For header.
+	DisableForwardClientIP bool
 }
 
 // ProxyHandler returns a new http.Handler interface that reverse proxies the
@@ -100,18 +103,13 @@ func (w *WebsocketProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		requestHeader.Set("Host", req.Host)
 	}
 
-	// Pass X-Forwarded-For headers too, code below is a part of
-	// httputil.ReverseProxy. See http://en.wikipedia.org/wiki/X-Forwarded-For
-	// for more information
-	// TODO: use RFC7239 http://tools.ietf.org/html/rfc7239
-	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
-		// If we aren't the first proxy retain prior
-		// X-Forwarded-For information as a comma+space
-		// separated list and fold multiple headers into one.
-		if prior, ok := req.Header["X-Forwarded-For"]; ok {
-			clientIP = strings.Join(prior, ", ") + ", " + clientIP
+	if !w.DisableForwardClientIP {
+		if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+			if prior, ok := req.Header["X-Forwarded-For"]; ok {
+				clientIP = strings.Join(prior, ", ") + ", " + clientIP
+			}
+			requestHeader.Set("X-Forwarded-For", clientIP)
 		}
-		requestHeader.Set("X-Forwarded-For", clientIP)
 	}
 
 	// Enable the director to copy any additional headers it desires for

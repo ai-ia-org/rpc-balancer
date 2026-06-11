@@ -29,6 +29,14 @@ type upstreams struct {
 
 var randomSource *rand.Rand
 
+type stripXFFTransport struct{ rt http.RoundTripper }
+
+func (t *stripXFFTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
+	req.Header.Del("X-Forwarded-For")
+	return t.rt.RoundTrip(req)
+}
+
 func (u *upstreams) init(chainId string, chainName string) {
 	u.HttpClient = http.Client{
 		Timeout: time.Duration(connectTimeout) * time.Second,
@@ -46,6 +54,9 @@ func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.ModifyResponse = httpModifyResponse
 	proxy.ErrorHandler = httpErrorHandler
+	if config.DisableForwardClientIP {
+		proxy.Transport = &stripXFFTransport{rt: http.DefaultTransport}
+	}
 	var wsProxy *WebsocketProxy
 	if rpc.WsUrl != "" {
 		remote, err = url.Parse(rpc.WsUrl)
@@ -54,6 +65,7 @@ func (u *upstreams) addUpstream(rpc rpcEndpoint) {
 			wsProxy = nil
 		} else {
 			wsProxy = NewWsProxy(remote)
+			wsProxy.DisableForwardClientIP = config.DisableForwardClientIP
 		}
 	}
 	up := upstream{Proxy: proxy, WsProxy: wsProxy, RpcEndpoint: rpc}
