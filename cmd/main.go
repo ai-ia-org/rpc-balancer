@@ -31,20 +31,7 @@ func Run() {
 				}
 			}
 			if !upgrade {
-				u := net.Proxies.getNextUpstream()
-				if u == nil {
-					if net.Fallback == nil {
-						log.Println(r.URL.Path, "doesn't have active upstreams and no fallback configured")
-						http.Error(w, "no upstreams available", http.StatusServiceUnavailable)
-						return
-					}
-					log.Println(r.URL.Path, "no healthy upstreams, using fallback")
-					u = net.Fallback
-				}
-				r.Host = u.RpcEndpoint.Remote.Host
-				r.URL.Path = u.RpcEndpoint.Remote.Path
-				u.Proxy.ServeHTTP(w, r)
-				rpcBalancerUpstreamHttpRequestTotal.WithLabelValues(net.ChainId, net.Name, u.RpcEndpoint.Name, u.RpcEndpoint.Url).Inc()
+				serveHTTPWithRetry(w, r, net.ChainId, net.Name, net.Proxies, net.Fallback)
 			} else {
 				u := net.Proxies.getNextWsUpstream()
 				if u == nil {

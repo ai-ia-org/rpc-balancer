@@ -145,6 +145,20 @@ func (u *upstreams) getNextUpstream() *upstream {
 	}
 }
 
+// getHealthyUpstreamsShuffled returns a randomized copy of HealthyUpstreams,
+// used to try upstreams one at a time (without repeats) on retry after a
+// proxy-level failure. Uses the top-level math/rand functions rather than
+// the package's shared randomSource, since those are safe for concurrent
+// use from multiple request-handling goroutines.
+func (u *upstreams) getHealthyUpstreamsShuffled() []*upstream {
+	healthy := make([]*upstream, len(u.HealthyUpstreams))
+	copy(healthy, u.HealthyUpstreams)
+	rand.Shuffle(len(healthy), func(i, j int) {
+		healthy[i], healthy[j] = healthy[j], healthy[i]
+	})
+	return healthy
+}
+
 func (u *upstreams) getNextWsUpstream() *upstream {
 	if len(u.WsUpstreams) > 0 {
 		n := randomSource.Int() % len(u.WsUpstreams)
