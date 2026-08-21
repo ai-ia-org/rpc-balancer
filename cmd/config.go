@@ -25,6 +25,7 @@ var connectTimeout = 5
 var upstreamCheckInterval = 15
 var blockHealthyDiff int64 = 5
 var timestampHealthyDiff int64 = 3
+var maxUpstreamAttempts = 3
 var metricsPort *int
 var port *int
 var config Configuration
