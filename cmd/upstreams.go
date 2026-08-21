@@ -136,15 +136,6 @@ func (u *upstreams) setHealthyUpstreams(chainId string, chainName string) {
 	}
 }
 
-func (u *upstreams) getNextUpstream() *upstream {
-	if len(u.HealthyUpstreams) > 0 {
-		n := randomSource.Int() % len(u.HealthyUpstreams)
-		return u.HealthyUpstreams[n]
-	} else {
-		return nil
-	}
-}
-
 // getHealthyUpstreamsShuffled returns a randomized copy of HealthyUpstreams,
 // used to try upstreams one at a time (without repeats) on retry after a
 // proxy-level failure. Uses the top-level math/rand functions rather than
